@@ -1779,6 +1779,97 @@ static void __init free_dma_resources(void)
 	free_unity_maps();
 }
 
+struct ivhd_entry4 {
+	u8 type;
+	u16 devid;
+	u8 flags;
+} __attribute__((packed));
+
+struct fake_ivrs {
+	struct acpi_table_header hdr;
+	u32 IVinfo;
+	u8 reserved[8];
+	struct ivhd_header hd_hdr;
+	struct ivhd_entry4 hd_entries[3];
+} __attribute__((packed));
+
+static struct fake_ivrs ps4_ivrs;
+
+#define acpi_strcpy(d,s) memcpy(d, s, strlen(s))
+
+u8 acpi_calc_checksum(void *ptr, u32 len) {
+	u32 i;
+	u8 checksum = 0;
+	u8 *p = (u8 *)ptr;
+	for (i = 0; i < len; i++) {
+		checksum += p[i];
+	}
+	return -checksum;
+}
+
+// To have parity with fbsd, should also have IVMD with full address space (52bits)
+// of "exclusion range". But none of the devices are configured to use it, anyways.
+void get_fake_ivrs(struct acpi_table_header **table, acpi_size *size) {
+	struct acpi_table_header *tb;
+	struct ivhd_header *hdr;
+	struct ivhd_entry4 *entries;
+	int i;
+
+	memset(&ps4_ivrs, 0, sizeof(ps4_ivrs));
+
+	tb = &ps4_ivrs.hdr;
+	acpi_strcpy(tb->signature, "IVRS");
+	tb->length = sizeof(ps4_ivrs);
+	tb->revision = 1;
+	acpi_strcpy(tb->oem_id, "      ");
+	acpi_strcpy(tb->oem_table_id, "        ");
+	tb->oem_revision = 0x20150101;
+	acpi_strcpy(tb->asl_compiler_id, "INTL");
+	tb->asl_compiler_revision = 0x20110211;
+
+	hdr = &ps4_ivrs.hd_hdr;
+	hdr->type = ACPI_IVHD_TYPE;
+	hdr->flags = /*coherent | */(1 << 5) | IVHD_FLAG_ISOC_EN_MASK;
+	hdr->length = sizeof(ps4_ivrs.hd_hdr) + sizeof(ps4_ivrs.hd_entries);
+	hdr->devid = PCI_DEVFN(0, 2);
+	hdr->cap_ptr = 0x40; // from config space + 0x34
+	hdr->mmio_phys = 0xfc000000;
+	hdr->pci_seg = 0;
+	hdr->info = 0; // msi msg num? (the pci cap should be written by software)
+	// HATS = 0b10, PNBanks = 2, PNCounters = 4, IASup = 1
+	hdr->efr = (2 << 30) | (2 << 17) | (4 << 13) | (1 << 5);
+
+	entries = &ps4_ivrs.hd_entries[0];
+	// on fbsd, all aeolia devfns have active entries except memories (func 6)
+	//   not sure if this is just because it wasn't in use when i dumped it?
+	// all entries are r/w
+	// IntCtl = 0b01 and IV = 1 are set for all entries (irqs are forwarded)
+	// apcie has SysMgt = 0b11 (others are 0b00). (device-initiated dmas are translated)
+	// Modes:
+	//   4 level:
+	//     apcie
+	//   3 level:
+	//     all others
+
+	// the way to encode this info into the IVHD entries is fairly arbitrary...
+	entries[0].type = IVHD_DEV_SELECT;
+	entries[0].devid = PCI_DEVFN(20, 0);
+	entries[0].flags = ACPI_DEVFLAG_SYSMGT1 | ACPI_DEVFLAG_SYSMGT2;
+
+	entries[1].type = IVHD_DEV_SELECT_RANGE_START;
+	entries[1].devid = PCI_DEVFN(20, 1);
+	entries[1].flags = 0;
+	entries[2].type = IVHD_DEV_RANGE_END;
+	entries[2].devid = PCI_DEVFN(20, 7);
+	entries[2].flags = 0;
+
+
+	tb->checksum = acpi_calc_checksum(tb, tb->length);
+
+	*table = tb;
+	*size = tb->length;
+}
+
 /*
  * This is the hardware init function for AMD IOMMU in the system.
  * This function is called either from amd_iommu_init or from the interrupt
@@ -1808,20 +1899,12 @@ static int __init early_amd_iommu_init(void)
 {
 	struct acpi_table_header *ivrs_base;
 	acpi_size ivrs_size;
-	acpi_status status;
 	int i, ret = 0;
 
 	if (!amd_iommu_detected)
 		return -ENODEV;
 
-	status = acpi_get_table_with_size("IVRS", 0, &ivrs_base, &ivrs_size);
-	if (status == AE_NOT_FOUND)
-		return -ENODEV;
-	else if (ACPI_FAILURE(status)) {
-		const char *err = acpi_format_exception(status);
-		pr_err("AMD-Vi: IVRS table error: %s\n", err);
-		return -EINVAL;
-	}
+	get_fake_ivrs(&ivrs_base, &ivrs_size);
 
 	/*
 	 * First parse ACPI tables to find the largest Bus/Dev/Func
@@ -1918,8 +2001,6 @@ static int __init early_amd_iommu_init(void)
 	init_device_table();
 
 out:
-	/* Don't leak any ACPI memory */
-	early_acpi_os_unmap_memory((char __iomem *)ivrs_base, ivrs_size);
 	ivrs_base = NULL;
 
 	return ret;
@@ -1942,21 +2023,6 @@ out:
 
 static bool detect_ivrs(void)
 {
-	struct acpi_table_header *ivrs_base;
-	acpi_size ivrs_size;
-	acpi_status status;
-
-	status = acpi_get_table_with_size("IVRS", 0, &ivrs_base, &ivrs_size);
-	if (status == AE_NOT_FOUND)
-		return false;
-	else if (ACPI_FAILURE(status)) {
-		const char *err = acpi_format_exception(status);
-		pr_err("AMD-Vi: IVRS table error: %s\n", err);
-		return false;
-	}
-
-	early_acpi_os_unmap_memory((char __iomem *)ivrs_base, ivrs_size);
-
 	/* Make sure ACS will be enabled during PCI probe */
 	pci_request_acs();
 
