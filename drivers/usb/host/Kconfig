@@ -57,6 +57,13 @@ config USB_XHCI_RCAR
 	  Say 'Y' to enable the support for the xHCI host controller
 	  found in Renesas R-Car ARM SoCs.
 
+config USB_XHCI_AEOLIA
+	tristate "xHCI support for Sony PS4 (Aeolia)"
+	depends on X86_PS4
+	---help---
+	  Say 'Y' to enable the support for the xHCI host controller
+	  found in the Sony PlayStation 4.
+
 endif # USB_XHCI_HCD
 
 config USB_EHCI_HCD
