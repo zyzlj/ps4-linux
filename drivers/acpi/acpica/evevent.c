@@ -129,7 +129,8 @@ acpi_status acpi_ev_install_xrupt_handlers(void)
 	if (ACPI_FAILURE(status)) {
 		ACPI_EXCEPTION((AE_INFO, status,
 				"Unable to install System Control Interrupt handler"));
-		return_ACPI_STATUS(status);
+		// Do not cause all ACPI to fail here. see freebsd madt_setup_io
+		//return_ACPI_STATUS(status);
 	}
 
 	/* Install the handler for the Global Lock */

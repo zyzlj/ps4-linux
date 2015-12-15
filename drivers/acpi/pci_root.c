@@ -530,39 +530,12 @@ static int acpi_pci_root_add(struct acpi_device *device,
 		return -ENOMEM;
 
 	segment = 0;
-	status = acpi_evaluate_integer(handle, METHOD_NAME__SEG, NULL,
-				       &segment);
-	if (ACPI_FAILURE(status) && status != AE_NOT_FOUND) {
-		dev_err(&device->dev,  "can't evaluate _SEG\n");
-		result = -ENODEV;
-		goto end;
-	}
 
-	/* Check _CRS first, then _BBN.  If no _BBN, default to zero. */
 	root->secondary.flags = IORESOURCE_BUS;
 	status = try_get_root_bridge_busnr(handle, &root->secondary);
-	if (ACPI_FAILURE(status)) {
-		/*
-		 * We need both the start and end of the downstream bus range
-		 * to interpret _CBA (MMCONFIG base address), so it really is
-		 * supposed to be in _CRS.  If we don't find it there, all we
-		 * can do is assume [_BBN-0xFF] or [0-0xFF].
-		 */
-		root->secondary.end = 0xFF;
-		dev_warn(&device->dev,
-			 FW_BUG "no secondary bus range in _CRS\n");
-		status = acpi_evaluate_integer(handle, METHOD_NAME__BBN,
-					       NULL, &bus);
-		if (ACPI_SUCCESS(status))
-			root->secondary.start = bus;
-		else if (status == AE_NOT_FOUND)
-			root->secondary.start = 0;
-		else {
-			dev_err(&device->dev, "can't evaluate _BBN\n");
-			result = -ENODEV;
-			goto end;
-		}
-	}
+	// freebsd just blindly trusts MCFG, so hardcode the data from that table here...
+	root->secondary.start = 0;
+	root->secondary.end = 0x3f;
 
 	root->device = device;
 	root->segment = segment & 0xFFFF;

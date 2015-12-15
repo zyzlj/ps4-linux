@@ -530,6 +530,7 @@ static int __ref pci_mmcfg_check_reserved(struct device *dev,
 	return 0;
 }
 
+#if 0
 static void __init pci_mmcfg_reject_broken(int early)
 {
 	struct pci_mmcfg_region *cfg;
@@ -542,6 +543,7 @@ static void __init pci_mmcfg_reject_broken(int early)
 		}
 	}
 }
+#endif
 
 static int __init acpi_mcfg_check_entry(struct acpi_table_mcfg *mcfg,
 					struct acpi_mcfg_allocation *cfg)
@@ -638,7 +640,7 @@ static int pci_mmcfg_for_each_region(int (*func)(__u64 start, __u64 size,
 
 static void __init __pci_mmcfg_init(int early)
 {
-	pci_mmcfg_reject_broken(early);
+	//pci_mmcfg_reject_broken(early);
 	if (list_empty(&pci_mmcfg_list))
 		return;
 
