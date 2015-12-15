@@ -345,6 +345,8 @@ static int radeon_dp_get_dp_lane_number(struct drm_connector *connector,
 			break;
 	}
 
+	lane_num = 4;
+
 	return lane_num;
 }
 
