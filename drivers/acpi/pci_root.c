@@ -819,6 +819,10 @@ struct pci_bus *acpi_pci_root_create(struct acpi_pci_root *root,
 
 	pci_acpi_root_add_resources(info);
 	pci_add_resource(&info->resources, &root->secondary);
+	// HACK: PS4 ACPI tables do not contain proper info for PCI
+	// resources, so say the bridge covers everything
+	pci_add_resource(&info->resources, &ioport_resource);
+	pci_add_resource(&info->resources, &iomem_resource);
 	bus = pci_create_root_bus(NULL, busnum, ops->pci_ops,
 				  sysdata, &info->resources);
 	if (!bus)
