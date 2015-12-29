@@ -6207,7 +6207,7 @@ static void cik_gpu_pci_config_reset(struct radeon_device *rdev)
 	/* disable BM */
 	pci_clear_master(rdev->pdev);
 	/* reset */
-	radeon_pci_config_reset(rdev);
+	//radeon_pci_config_reset(rdev);
 
 	udelay(100);
 
@@ -9447,6 +9447,10 @@ int cik_init(struct radeon_device *rdev)
 {
 	struct radeon_ring *ring;
 	int r;
+
+	printk("RESET ALL THE THINGS\n");
+	cik_gpu_pci_config_reset(rdev);
+	cik_gpu_soft_reset(rdev, 0xfff);
 
 	/* Read BIOS */
 	if (!radeon_get_bios(rdev)) {
