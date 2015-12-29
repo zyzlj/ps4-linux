@@ -2665,7 +2665,7 @@ int radeon_asic_init(struct radeon_device *rdev)
 				RADEON_CG_SUPPORT_SDMA_LS |
 				RADEON_CG_SUPPORT_BIF_LS |
 				RADEON_CG_SUPPORT_VCE_MGCG |
-				RADEON_CG_SUPPORT_UVD_MGCG |
+				/*RADEON_CG_SUPPORT_UVD_MGCG |*/
 				RADEON_CG_SUPPORT_HDP_LS |
 				RADEON_CG_SUPPORT_HDP_MGCG;
 			rdev->pg_flags = 0;
@@ -2678,7 +2678,7 @@ int radeon_asic_init(struct radeon_device *rdev)
 				RADEON_PG_SUPPORT_RLC_SMU_HS |
 				RADEON_PG_SUPPORT_SAMU;*/
 		}
-		rdev->has_uvd = true;
+		rdev->has_uvd = false;
 		break;
 	default:
 		/* FIXME: not supported yet */

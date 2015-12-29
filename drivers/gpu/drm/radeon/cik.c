@@ -9314,7 +9314,7 @@ static int cik_startup(struct radeon_device *rdev)
 	r = cik_sdma_resume(rdev);
 	if (r)
 		return r;
-
+#if 0
 	ring = &rdev->ring[R600_RING_TYPE_UVD_INDEX];
 	if (ring->ring_size) {
 		r = radeon_ring_init(rdev, ring, ring->ring_size, 0,
@@ -9341,7 +9341,7 @@ static int cik_startup(struct radeon_device *rdev)
 		r = vce_v1_0_init(rdev);
 	else if (r != -ENOENT)
 		DRM_ERROR("radeon: failed initializing VCE (%d).\n", r);
-
+#endif
 	r = radeon_ib_pool_init(rdev);
 	if (r) {
 		dev_err(rdev->dev, "IB initialization failed (%d).\n", r);
