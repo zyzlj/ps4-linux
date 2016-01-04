@@ -6735,6 +6735,36 @@ void cik_vm_flush(struct radeon_device *rdev, struct radeon_ring *ring,
 {
 	int usepfp = (ring->idx == RADEON_RING_TYPE_GFX_INDEX);
 
+	//printk("cik_vm_flush vmid=%d pd_addr=0x%lx ring=%d\n", vm_id, pd_addr, ring->idx);
+
+	if (vm_id < 8) {
+		WREG32((VM_CONTEXT0_PAGE_TABLE_BASE_ADDR + (vm_id << 2)),
+			pd_addr >> 12
+		);
+	} else {
+		WREG32((VM_CONTEXT8_PAGE_TABLE_BASE_ADDR + ((vm_id - 8) << 2)),
+			pd_addr >> 12
+		);
+	}
+	//cik_print_gpu_status_regs(rdev);
+
+	WREG32(SRBM_GFX_CNTL, VMID(vm_id));
+	WREG32(SH_MEM_BASES, 0);
+	WREG32(SH_MEM_CONFIG, 0);
+	WREG32(SH_MEM_APE1_BASE, 1);
+	WREG32(SH_MEM_APE1_LIMIT, 0);
+	WREG32(SRBM_GFX_CNTL, VMID(0));
+	cik_hdp_flush_cp_ring_emit(rdev, ring->idx);
+	WREG32(VM_INVALIDATE_REQUEST, 1 << vm_id);
+	while (RREG32(VM_INVALIDATE_REQUEST))
+		DRM_UDELAY(1);
+	
+	if (usepfp) {
+		/* sync PFP to ME, otherwise we might get invalid PFP reads */
+		radeon_ring_write(ring, PACKET3(PACKET3_PFP_SYNC_ME, 0));
+		radeon_ring_write(ring, 0x0);
+	}
+#if 0
 	radeon_ring_write(ring, PACKET3(PACKET3_WRITE_DATA, 3));
 	radeon_ring_write(ring, (WRITE_DATA_ENGINE_SEL(usepfp) |
 				 WRITE_DATA_DST_SEL(0)));
@@ -6802,6 +6832,9 @@ void cik_vm_flush(struct radeon_device *rdev, struct radeon_ring *ring,
 		radeon_ring_write(ring, PACKET3(PACKET3_PFP_SYNC_ME, 0));
 		radeon_ring_write(ring, 0x0);
 	}
+#endif
+//	msleep(300);
+//	cik_print_gpu_status_regs(rdev);
 }
 
 /*
