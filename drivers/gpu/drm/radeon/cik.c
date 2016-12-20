@@ -8185,8 +8185,8 @@ static inline u32 cik_get_ih_wptr(struct radeon_device *rdev)
 		 * from the last not overwritten vector (wptr + 16). Hopefully
 		 * this should allow us to catchup.
 		 */
-		dev_warn(rdev->dev, "IH ring buffer overflow (0x%08X, 0x%08X, 0x%08X)\n",
-			 wptr, rdev->ih.rptr, (wptr + 16) & rdev->ih.ptr_mask);
+		//dev_warn(rdev->dev, "IH ring buffer overflow (0x%08X, 0x%08X, 0x%08X)\n",
+		//	 wptr, rdev->ih.rptr, (wptr + 16) & rdev->ih.ptr_mask);
 		rdev->ih.rptr = (wptr + 16) & rdev->ih.ptr_mask;
 		tmp = RREG32(IH_RB_CNTL);
 		tmp |= IH_WPTR_OVERFLOW_CLEAR;
@@ -9366,7 +9366,7 @@ int cik_init(struct radeon_device *rdev)
 	cik_vce_init(rdev);
 
 	rdev->ih.ring_obj = NULL;
-	r600_ih_ring_init(rdev, 64 * 1024);
+	r600_ih_ring_init(rdev, 256 * 1024);
 
 	r = r600_pcie_gart_init(rdev);
 	if (r)
