@@ -75,6 +75,7 @@ static int amdgpu_powerplay_init(struct amdgpu_device *adev)
 		case CHIP_KABINI:
 		case CHIP_MULLINS:
 		case CHIP_KAVERI:
+		case CHIP_LIVERPOOL:
 			amd_pp->ip_funcs = &kv_dpm_ip_funcs;
 			break;
 #endif
@@ -113,6 +114,7 @@ static int amdgpu_pp_early_init(void *handle)
 	case CHIP_KABINI:
 	case CHIP_MULLINS:
 	case CHIP_KAVERI:
+	case CHIP_LIVERPOOL:
 	default:
 		adev->pp_enabled = false;
 		break;
