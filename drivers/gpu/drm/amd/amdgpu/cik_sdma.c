@@ -64,6 +64,8 @@ MODULE_FIRMWARE("radeon/kabini_sdma.bin");
 MODULE_FIRMWARE("radeon/kabini_sdma1.bin");
 MODULE_FIRMWARE("radeon/mullins_sdma.bin");
 MODULE_FIRMWARE("radeon/mullins_sdma1.bin");
+MODULE_FIRMWARE("radeon/liverpool_sdma.bin");
+MODULE_FIRMWARE("radeon/liverpool_sdma1.bin");
 
 u32 amdgpu_cik_gpu_check_soft_reset(struct amdgpu_device *adev);
 
@@ -126,6 +128,9 @@ static int cik_sdma_init_microcode(struct amdgpu_device *adev)
 		break;
 	case CHIP_MULLINS:
 		chip_name = "mullins";
+		break;
+	case CHIP_LIVERPOOL:
+		chip_name = "liverpool";
 		break;
 	default: BUG();
 	}
@@ -584,11 +589,20 @@ static int cik_sdma_ring_test_ring(struct amdgpu_ring *ring)
 		amdgpu_wb_free(adev, index);
 		return r;
 	}
-	amdgpu_ring_write(ring, SDMA_PACKET(SDMA_OPCODE_WRITE, SDMA_WRITE_SUB_OPCODE_LINEAR, 0));
-	amdgpu_ring_write(ring, lower_32_bits(gpu_addr));
-	amdgpu_ring_write(ring, upper_32_bits(gpu_addr));
-	amdgpu_ring_write(ring, 1); /* number of DWs to follow */
-	amdgpu_ring_write(ring, 0xDEADBEEF);
+	/* The SDMA_OPCODE_WRITE opcode is broken in the ring on Liverpool */
+	if (adev->asic_type == CHIP_LIVERPOOL) {
+		amdgpu_ring_write(ring, SDMA_PACKET(SDMA_OPCODE_CONSTANT_FILL, 0, SDMA_CONSTANT_FILL_EXTRA_SIZE(2)));
+		amdgpu_ring_write(ring, lower_32_bits(gpu_addr));
+		amdgpu_ring_write(ring, upper_32_bits(gpu_addr));
+		amdgpu_ring_write(ring, 0xDEADBEEF);
+		amdgpu_ring_write(ring, 4); /* number of bytes */
+	} else {
+		amdgpu_ring_write(ring, SDMA_PACKET(SDMA_OPCODE_WRITE, SDMA_WRITE_SUB_OPCODE_LINEAR, 0));
+		amdgpu_ring_write(ring, lower_32_bits(gpu_addr));
+		amdgpu_ring_write(ring, upper_32_bits(gpu_addr));
+		amdgpu_ring_write(ring, 1); /* number of DWs to follow */
+		amdgpu_ring_write(ring, 0xDEADBEEF);
+	}
 	amdgpu_ring_commit(ring);
 
 	for (i = 0; i < adev->usec_timeout; i++) {
