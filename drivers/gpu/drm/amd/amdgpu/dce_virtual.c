@@ -113,6 +113,7 @@ static void dce_virtual_stop_mc_access(struct amdgpu_device *adev,
 	case CHIP_KAVERI:
 	case CHIP_KABINI:
 	case CHIP_MULLINS:
+	case CHIP_LIVERPOOL:
 		dce_v8_0_disable_dce(adev);
 		break;
 #endif

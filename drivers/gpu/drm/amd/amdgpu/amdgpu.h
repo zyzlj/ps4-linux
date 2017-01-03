@@ -148,6 +148,8 @@ extern int amdgpu_vram_page_split;
 /* max cursor sizes (in pixels) */
 #define CIK_CURSOR_WIDTH 128
 #define CIK_CURSOR_HEIGHT 128
+#define LVP_CURSOR_WIDTH 64
+#define LVP_CURSOR_HEIGHT 64
 
 struct amdgpu_device;
 struct amdgpu_ib;
