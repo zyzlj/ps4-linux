@@ -2117,7 +2117,8 @@ static int dce_v8_0_crtc_do_set_base(struct drm_crtc *crtc,
 	}
 
 	/* Bytes per pixel may have changed */
-	dce_v8_0_bandwidth_update(adev);
+	if (adev->asic_type != CHIP_LIVERPOOL)
+		dce_v8_0_bandwidth_update(adev);
 
 	return 0;
 }
