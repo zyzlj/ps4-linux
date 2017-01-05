@@ -432,6 +432,21 @@ void amd_sched_job_recovery(struct amd_gpu_scheduler *sched)
 	spin_unlock(&sched->job_list_lock);
 }
 
+void amd_sched_job_abort(struct amd_gpu_scheduler *sched)
+{
+	struct amd_sched_job *s_job, *tmp;
+
+	spin_lock(&sched->job_list_lock);
+	list_for_each_entry_safe(s_job, tmp, &sched->ring_mirror_list, node) {
+		struct amd_sched_fence *s_fence = s_job->s_fence;
+		spin_unlock(&sched->job_list_lock);
+		atomic_inc(&sched->hw_rq_count);
+		amd_sched_process_job(NULL, &s_fence->cb);
+		spin_lock(&sched->job_list_lock);
+	}
+	spin_unlock(&sched->job_list_lock);
+}
+
 /**
  * Submit a job to the job queue
  *

@@ -2357,8 +2357,10 @@ retry:
 			struct amdgpu_ring *ring = adev->rings[i];
 			if (!ring)
 				continue;
-
-			amd_sched_job_recovery(&ring->sched);
+			if (amdgpu_abort_on_lockup)
+				amd_sched_job_abort(&ring->sched);
+			else
+				amd_sched_job_recovery(&ring->sched);
 			kthread_unpark(ring->sched.thread);
 		}
 	} else {
