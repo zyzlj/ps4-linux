@@ -2117,6 +2117,8 @@ static void __init free_on_init_error(void)
 #endif
 }
 
+#ifndef CONFIG_X86_PS4 // TODO this should detect ps4-ness at runtime
+
 /* SB IOAPIC is always on this device in AMD systems */
 #define IOAPIC_SB_DEVID		((0x00 << 8) | PCI_DEVFN(0x14, 0))
 
@@ -2168,6 +2170,8 @@ static bool __init check_ioapic_information(void)
 
 	return ret;
 }
+
+#endif
 
 static void __init free_dma_resources(void)
 {
